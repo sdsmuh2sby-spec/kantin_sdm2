@@ -1,6 +1,6 @@
 {
   "name": "KantinKu - Aplikasi Pengelolaan Kantin Sekolah",
-  "description": "Aplikasi pengelolaan kantin sekolah terpadu dengan pembukuan kas, laporan laba rugi berkala, ekspor PDF/Excel ber-QR tanda tangan digital, cetak label barcode harga, data penyedia, dan backup-restore.",
+  "description": "Aplikasi pengelolaan kantin sekolah terpadu dengan pembukuan kas, laporan laba rugi berkala, ekspor PDF/Excel ber-QR tanda tangan digital, cetak label harga barang, data penyedia, dan backup-restore.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

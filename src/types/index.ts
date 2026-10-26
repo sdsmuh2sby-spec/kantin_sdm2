@@ -1,5 +1,10 @@
 export type TransactionType = 'penerimaan' | 'pengeluaran';
 
+export interface CashCategories {
+  penerimaan: string[];
+  pengeluaran: string[];
+}
+
 export interface CashTransaction {
   id: string;
   tanggal: string; // YYYY-MM-DD
@@ -89,12 +94,27 @@ export interface DigitalSignatureInfo {
   keterangan: string;
 }
 
+export interface AuthCredentials {
+  username: string;
+  password: string;
+  namaPengguna?: string;
+  updatedAt?: string;
+}
+
+export interface AuthSession {
+  username: string;
+  loggedInAt: string;
+}
+
 export interface KantinDatabase {
   version: string;
   exportedAt: string;
   profilSekolah: SchoolProfile;
   transaksiKas: CashTransaction[];
   barang: ProductItem[];
+  kategoriProduk?: string[];
   penjualan: SaleTransaction[];
   penyedia: Supplier[];
+  kategoriKas?: CashCategories;
+  kredensial?: AuthCredentials;
 }

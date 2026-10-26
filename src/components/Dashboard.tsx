@@ -337,15 +337,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               <button
                 onClick={() => onNavigateToTab('labels')}
-                className="p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/70 rounded-xl text-left transition-all flex flex-col justify-between group"
+                className="p-3 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200/70 rounded-xl text-left transition-all flex flex-col justify-between group"
               >
                 <div className="flex items-center justify-between">
-                  <Printer className="w-4 h-4 text-indigo-700" />
-                  <ArrowRight className="w-3.5 h-3.5 text-indigo-500 group-hover:translate-x-0.5 transition-transform" />
+                  <Printer className="w-4 h-4 text-blue-700" />
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-500 group-hover:translate-x-0.5 transition-transform" />
                 </div>
                 <div className="mt-2">
                   <span className="block font-bold text-xs">Cetak Label Harga</span>
-                  <span className="text-[10px] text-indigo-700/80">Barcode & price tag</span>
+                  <span className="text-[10px] text-blue-700/80">Label Rak & Etalase</span>
                 </div>
               </button>
 

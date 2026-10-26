@@ -25,6 +25,8 @@ export interface ExportPdfParams {
   totalPengeluaran: number;
   totalLabaBersih: number;
   verificationCode: string;
+  customHeaders?: string[];
+  customPeriode?: string;
 }
 
 export async function exportReportToPdf(params: ExportPdfParams): Promise<void> {
@@ -38,6 +40,8 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
     totalPengeluaran,
     totalLabaBersih,
     verificationCode,
+    customHeaders,
+    customPeriode,
   } = params;
 
   const doc = new jsPDF({
@@ -82,9 +86,10 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
   const periodeText =
-    startDate === endDate
+    customPeriode ||
+    (startDate === endDate
       ? `Tanggal: ${formatTanggalIndo(startDate)}`
-      : `Periode: ${formatTanggalIndo(startDate)} s.d. ${formatTanggalIndo(endDate)}`;
+      : `Periode: ${formatTanggalIndo(startDate)} s.d. ${formatTanggalIndo(endDate)}`);
   doc.text(periodeText, pageWidth / 2, 46, { align: 'center' });
 
   // 3. Ringkasan Finansial Card
@@ -149,7 +154,7 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
 
   autoTable(doc, {
     startY: boxY + 23,
-    head: [['No', 'Tanggal', 'Keterangan', 'Kategori', 'Penerimaan', 'Pengeluaran', 'Laba Bersih']],
+    head: [customHeaders || ['No', 'Tanggal', 'Keterangan', 'Kategori', 'Penerimaan', 'Pengeluaran', 'Laba Bersih']],
     body: tableData,
     theme: 'grid',
     headStyles: {
@@ -199,8 +204,8 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(30, 41, 59);
-  doc.text(`${school.kotaPengesahan}, ${todayIndo}`, signColX + 30, signatureY, { align: 'center' });
-  doc.text(school.jabatanStaf, signColX + 30, signatureY + 4.5, { align: 'center' });
+  doc.text(todayIndo, signColX + 30, signatureY, { align: 'center' });
+  doc.text('Pengesahan Dokumen Digital', signColX + 30, signatureY + 4.5, { align: 'center' });
   doc.text(school.namaSekolah, signColX + 30, signatureY + 8.5, { align: 'center' });
 
   // Generate QR Code data URL
@@ -209,9 +214,6 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
     sekolah: school.namaSekolah,
     dokumen: title,
     periode: `${startDate} s.d ${endDate}`,
-    penandatangan: school.namaStafKantin,
-    nip: school.nipStafKantin,
-    jabatan: school.jabatanStaf,
     tanggalSah: todayIndo,
     kodeVerifikasi: verificationCode,
     status: 'TERVERIFIKASI DIGITAL KANTIN SEKOLAH',
@@ -242,16 +244,16 @@ export async function exportReportToPdf(params: ExportPdfParams): Promise<void> 
     doc.text('[Tanda Tangan Digital]', signColX + 30, signatureY + 22, { align: 'center' });
   }
 
-  // Nama Penandatangan & NIP
+  // Pengesahan Resmi Sekolah (tanpa nama staf personal)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(15, 23, 42);
-  doc.text(school.namaStafKantin, signColX + 30, signatureY + 45, { align: 'center' });
+  doc.text(school.namaSekolah, signColX + 30, signatureY + 45, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text(`NIP/NBM: ${school.nipStafKantin || '-'}`, signColX + 30, signatureY + 49, { align: 'center' });
+  doc.text('Kantin Sekolah Terverifikasi', signColX + 30, signatureY + 49, { align: 'center' });
 
   // Catatan Kaki Dokumen
   doc.setFontSize(7);

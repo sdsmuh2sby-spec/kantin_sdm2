@@ -17,8 +17,39 @@ export const formatNumber = (value: number | undefined | null): string => {
   return new Intl.NumberFormat('id-ID').format(num);
 };
 
+export const MONTH_NAMES_INDO = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+export const formatBulanTahunIndo = (yearMonth: string): string => {
+  if (!yearMonth) return '-';
+  const parts = yearMonth.split('-');
+  if (parts.length >= 2) {
+    const year = parts[0];
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    if (monthIdx >= 0 && monthIdx < 12) {
+      return `${MONTH_NAMES_INDO[monthIdx]} ${year}`;
+    }
+  }
+  return yearMonth;
+};
+
 export const formatTanggalIndo = (dateStr: string): string => {
   if (!dateStr) return '-';
+  if (dateStr.startsWith('Tahun ') || MONTH_NAMES_INDO.some((m) => dateStr.includes(m))) {
+    return dateStr;
+  }
   try {
     const parts = dateStr.split('-');
     if (parts.length === 3) {
@@ -32,7 +63,11 @@ export const formatTanggalIndo = (dateStr: string): string => {
         year: 'numeric',
       }).format(date);
     }
+    if (parts.length === 2) {
+      return formatBulanTahunIndo(dateStr);
+    }
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     return new Intl.DateTimeFormat('id-ID', {
       day: 'numeric',
       month: 'long',

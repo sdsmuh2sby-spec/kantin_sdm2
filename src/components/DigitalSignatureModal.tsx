@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { ShieldCheck, CheckCircle2, Copy, Check, X, School, UserCheck, Calendar } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Copy, Check, X, School, Calendar } from 'lucide-react';
 import { SchoolProfile } from '../types';
 import { formatTanggalIndo } from '../utils/formatters';
 
@@ -33,10 +33,7 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
       const payload = JSON.stringify({
         dokumen: reportTitle,
         sekolah: school.namaSekolah,
-        npsn: school.npsn,
-        staf: school.namaStafKantin,
-        nip: school.nipStafKantin,
-        jabatan: school.jabatanStaf,
+        alamat: school.alamat,
         periode: `${startDate} s.d ${endDate}`,
         tanggalPengesahan: today,
         kodeVerifikasi: verificationCode,
@@ -105,27 +102,18 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
               <span className="text-[10px] text-slate-500 font-mono mt-1">Scan QR untuk verifikasi</span>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-700 flex-1">
+            <div className="space-y-2.5 text-xs text-slate-700 flex-1">
               <div className="flex items-start gap-2">
                 <School className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold block text-slate-900">{school.namaSekolah}</span>
-                  <span className="text-[11px] text-slate-500">{school.alamat}</span>
+                  <span className="text-[11px] text-slate-500 leading-snug">{school.alamat}</span>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
-                <UserCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-slate-900">{school.namaStafKantin}</span>
-                  <span className="block text-slate-500 text-[11px]">{school.jabatanStaf}</span>
-                  <span className="block text-slate-500 text-[10px] font-mono">NIP/NBM: {school.nipStafKantin || '-'}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60">
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
                 <Calendar className="w-4 h-4 text-indigo-700 shrink-0" />
-                <span>Pengesahan: {school.kotaPengesahan}, {formatTanggalIndo(today)}</span>
+                <span>Pengesahan: {formatTanggalIndo(today)}</span>
               </div>
             </div>
           </div>

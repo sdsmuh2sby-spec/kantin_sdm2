@@ -13,6 +13,8 @@ export interface ExportExcelParams {
   totalPengeluaran: number;
   totalLabaBersih: number;
   verificationCode: string;
+  customHeaders?: string[];
+  customPeriode?: string;
 }
 
 export function exportReportToExcel(params: ExportExcelParams): void {
@@ -26,6 +28,8 @@ export function exportReportToExcel(params: ExportExcelParams): void {
     totalPengeluaran,
     totalLabaBersih,
     verificationCode,
+    customHeaders,
+    customPeriode,
   } = params;
 
   // Header rows
@@ -35,14 +39,29 @@ export function exportReportToExcel(params: ExportExcelParams): void {
     [`Telp: ${school.telepon} | Email: ${school.email}`],
     [],
     [title.toUpperCase()],
-    [`Periode: ${formatTanggalIndo(startDate)} s.d. ${formatTanggalIndo(endDate)}`],
+    [
+      `Periode: ${
+        customPeriode ||
+        (startDate === endDate
+          ? formatTanggalIndo(startDate)
+          : `${formatTanggalIndo(startDate)} s.d. ${formatTanggalIndo(endDate)}`)
+      }`,
+    ],
     [],
     ['RINGKASAN KEUANGAN'],
     ['Total Penerimaan / Omzet', totalPenerimaan],
     ['Total Pengeluaran / Biaya', totalPengeluaran],
     ['Laba Bersih Kantin', totalLabaBersih],
     [],
-    ['No', 'Tanggal', 'Keterangan', 'Kategori', 'Penerimaan (Rp)', 'Pengeluaran (Rp)', 'Laba Bersih (Rp)'],
+    customHeaders || [
+      'No',
+      'Tanggal',
+      'Keterangan',
+      'Kategori',
+      'Penerimaan (Rp)',
+      'Pengeluaran (Rp)',
+      'Laba Bersih (Rp)',
+    ],
   ];
 
   // Append data rows
@@ -72,8 +91,7 @@ export function exportReportToExcel(params: ExportExcelParams): void {
   worksheetData.push([]);
   worksheetData.push(['PENGESAHAN DOKUMEN DIGITAL']);
   worksheetData.push([`Kota & Tanggal: ${school.kotaPengesahan}, ${formatTanggalIndo(new Date().toISOString().split('T')[0])}`]);
-  worksheetData.push([`Penanggung Jawab: ${school.namaStafKantin} (${school.jabatanStaf})`]);
-  worksheetData.push([`NIP/NBM: ${school.nipStafKantin || '-'}`]);
+  worksheetData.push(['Penanggung Jawab: Pengelola Kantin']);
   worksheetData.push([`Kode Verifikasi Tanda Tangan: ${verificationCode}`]);
   worksheetData.push(['Status: TERVERIFIKASI DIGITAL KANTIN SEKOLAH']);
 

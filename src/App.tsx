@@ -12,7 +12,7 @@ import {
   SchoolProfile,
 } from './types';
 import { storageService } from './services/storageService';
-import { Navbar, NavTab } from './components/Navbar';
+import { Sidebar, NavTab } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { CashMenu } from './components/CashMenu';
 import { SalesReportsMenu } from './components/SalesReportsMenu';
@@ -22,8 +22,19 @@ import { SuppliersMenu } from './components/SuppliersMenu';
 import { SchoolProfileMenu } from './components/SchoolProfileMenu';
 import { BackupRestoreMenu } from './components/BackupRestoreMenu';
 import { PosCashierModal } from './components/PosCashierModal';
+import { LoginScreen } from './components/LoginScreen';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 
 export default function App() {
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
+    storageService.isAuthenticated()
+  );
+  const [currentUser, setCurrentUser] = useState<string>(
+    () => storageService.getSession()?.username || storageService.getAuthCredentials().username
+  );
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [initialCashOpenType, setInitialCashOpenType] = useState<'penerimaan' | 'pengeluaran' | null>(null);
@@ -88,86 +99,131 @@ export default function App() {
     storageService.saveProducts(updatedProducts);
   };
 
+  // Auth Handlers
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    const session = storageService.getSession();
+    setCurrentUser(session?.username || storageService.getAuthCredentials().username);
+  };
+
+  const handleLogout = () => {
+    storageService.logout();
+    setIsAuthenticated(false);
+  };
+
+  const handleCredentialsUpdated = () => {
+    const creds = storageService.getAuthCredentials();
+    setCurrentUser(creds.username);
+  };
+
+  // If not authenticated, display login portal
+  if (!isAuthenticated) {
+    return (
+      <LoginScreen
+        school={school}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
-      {/* Top Navigation */}
-      <Navbar
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 font-sans text-slate-800">
+      {/* Vertical Sidebar Navigation (Left Column) */}
+      <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         school={school}
         onOpenPos={() => setIsPosOpen(true)}
+        currentUsername={currentUser}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'dashboard' && (
-          <Dashboard
-            cashTransactions={cashTransactions}
-            salesTransactions={salesTransactions}
-            products={products}
-            school={school}
-            onOpenPos={() => setIsPosOpen(true)}
-            onNavigateToTab={(tab) => setActiveTab(tab)}
-            onOpenAddCash={(type) => {
-              setInitialCashOpenType(type);
-              setActiveTab('cash');
-            }}
-          />
-        )}
+      {/* Main Content Workspace (Right Column) */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {activeTab === 'dashboard' && (
+            <Dashboard
+              cashTransactions={cashTransactions}
+              salesTransactions={salesTransactions}
+              products={products}
+              school={school}
+              onOpenPos={() => setIsPosOpen(true)}
+              onNavigateToTab={(tab) => setActiveTab(tab)}
+              onOpenAddCash={(type) => {
+                setInitialCashOpenType(type);
+                setActiveTab('cash');
+              }}
+            />
+          )}
 
-        {activeTab === 'cash' && (
-          <CashMenu
-            transactions={cashTransactions}
-            onSaveTransactions={handleSaveCash}
-            initialOpenType={initialCashOpenType}
-            onClearInitialOpen={() => setInitialCashOpenType(null)}
-          />
-        )}
+          {activeTab === 'cash' && (
+            <CashMenu
+              transactions={cashTransactions}
+              onSaveTransactions={handleSaveCash}
+              initialOpenType={initialCashOpenType}
+              onClearInitialOpen={() => setInitialCashOpenType(null)}
+            />
+          )}
 
-        {activeTab === 'reports' && (
-          <SalesReportsMenu
-            cashTransactions={cashTransactions}
-            salesTransactions={salesTransactions}
-            school={school}
-          />
-        )}
+          {activeTab === 'reports' && (
+            <SalesReportsMenu
+              cashTransactions={cashTransactions}
+              salesTransactions={salesTransactions}
+              school={school}
+            />
+          )}
 
-        {activeTab === 'labels' && (
-          <PriceTagsMenu
-            products={products}
-            school={school}
-            onOpenProductManagement={() => setActiveTab('products')}
-          />
-        )}
+          {activeTab === 'labels' && (
+            <PriceTagsMenu
+              products={products}
+              school={school}
+              onOpenProductManagement={() => setActiveTab('products')}
+            />
+          )}
 
-        {activeTab === 'products' && (
-          <ProductsMenu
-            products={products}
-            suppliers={suppliers}
-            onSaveProducts={handleSaveProducts}
-            onNavigateToLabels={() => setActiveTab('labels')}
-          />
-        )}
+          {activeTab === 'products' && (
+            <ProductsMenu
+              products={products}
+              suppliers={suppliers}
+              onSaveProducts={handleSaveProducts}
+              onNavigateToLabels={() => setActiveTab('labels')}
+            />
+          )}
 
-        {activeTab === 'suppliers' && (
-          <SuppliersMenu
-            suppliers={suppliers}
-            products={products}
-            onSaveSuppliers={handleSaveSuppliers}
-          />
-        )}
+          {activeTab === 'suppliers' && (
+            <SuppliersMenu
+              suppliers={suppliers}
+              products={products}
+              onSaveSuppliers={handleSaveSuppliers}
+            />
+          )}
 
-        {activeTab === 'profile' && (
-          <SchoolProfileMenu
-            school={school}
-            onSaveProfile={handleSaveSchool}
-          />
-        )}
+          {activeTab === 'profile' && (
+            <SchoolProfileMenu
+              school={school}
+              onSaveProfile={handleSaveSchool}
+              onCredentialsUpdated={handleCredentialsUpdated}
+            />
+          )}
 
-        {activeTab === 'restore' && (
-          <BackupRestoreMenu onDataChanged={reloadAllData} />
-        )}
-      </main>
+          {activeTab === 'restore' && (
+            <BackupRestoreMenu onDataChanged={reloadAllData} />
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200/80 py-4 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 no-print mt-auto">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="font-semibold text-slate-700">
+              KantinKu — Sistem Pengelolaan & Pembukuan Kantin Sekolah
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {school.namaSekolah} • {school.alamat}
+            </p>
+          </div>
+        </footer>
+      </div>
 
       {/* POS Cashier Modal */}
       <PosCashierModal
@@ -178,17 +234,12 @@ export default function App() {
         onCompleteSale={handleCompleteSale}
       />
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-1">
-          <p className="font-semibold text-slate-700">
-            KantinKu — Sistem Pengelolaan & Pembukuan Kantin Sekolah
-          </p>
-          <p className="text-[11px] text-slate-400">
-            {school.namaSekolah} • {school.alamat}
-          </p>
-        </div>
-      </footer>
+      {/* Change Password / Account Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        onCredentialsUpdated={handleCredentialsUpdated}
+      />
     </div>
   );
 }

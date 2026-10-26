@@ -1,19 +1,61 @@
 import {
   CashTransaction,
+  CashCategories,
   ProductItem,
   SaleTransaction,
   Supplier,
   SchoolProfile,
   KantinDatabase,
+  AuthCredentials,
+  AuthSession,
 } from '../types';
 import { getTodayDateString } from '../utils/formatters';
 
 const STORAGE_KEYS = {
   SCHOOL: 'kantinku_school_profile',
   CASH: 'kantinku_cash_transactions',
+  CASH_CATEGORIES: 'kantinku_cash_categories',
   PRODUCTS: 'kantinku_products',
+  PRODUCT_CATEGORIES: 'kantinku_product_categories',
   SALES: 'kantinku_sales',
   SUPPLIERS: 'kantinku_suppliers',
+  AUTH_CREDS: 'kantinku_auth_credentials',
+  AUTH_SESSION: 'kantinku_auth_session',
+};
+
+export const defaultProductCategories: string[] = [
+  'Makanan Berat',
+  'Snack / Jajanan',
+  'Minuman',
+  'Buah & Sehat',
+  'ATK Sekolah',
+];
+
+export const defaultAuthCredentials: AuthCredentials = {
+  username: 'admin',
+  password: 'kantin123',
+  namaPengguna: 'Pengelola Kantin',
+};
+
+export const defaultCashCategories: CashCategories = {
+  penerimaan: [
+    'Penjualan Kantin',
+    'Penjualan Minuman',
+    'Penjualan Snack/Kue',
+    'Bagi Hasil Konsinyasi',
+    'Modal Awal / Suntikan Kas',
+    'Pendapatan Lain-lain',
+  ],
+  pengeluaran: [
+    'Pembelian Bahan/Stok',
+    'Kulakan Minuman Kemasan',
+    'Bagi Hasil Supplier',
+    'Operasional Gas/Listrik',
+    'Operasional & Kebersihan',
+    'Honor Petugas Kantin',
+    'Perlengkapan / Alat Kantin',
+    'Pengeluaran Lain-lain',
+  ],
 };
 
 // Default School Profile based on environment & Surabaya context
@@ -24,9 +66,9 @@ export const defaultSchoolProfile: SchoolProfile = {
   telepon: '(031) 5032890 / 0812-3456-7890',
   email: 'sds.muh2sby@gmail.com',
   kepalaSekolah: 'Dra. Hj. Wahyuni, M.Pd.',
-  namaStafKantin: 'Nurul Hidayati, S.Pd.',
-  nipStafKantin: '19870514 201201 2 005',
-  jabatanStaf: 'Kepala Pengelola Kantin Sehat',
+  namaStafKantin: 'Pengelola Kantin',
+  nipStafKantin: '-',
+  jabatanStaf: 'Pengelola Kantin',
   kotaPengesahan: 'Surabaya',
   catatanKop: 'Kantin Ramah Anak & Sehat Berprestasi',
 };
@@ -432,7 +474,17 @@ export const storageService = {
   getSchoolProfile: (): SchoolProfile => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SCHOOL);
-      return data ? JSON.parse(data) : defaultSchoolProfile;
+      if (!data) return defaultSchoolProfile;
+      const parsed = JSON.parse(data);
+      if (
+        !parsed.namaStafKantin ||
+        parsed.namaStafKantin.toLowerCase().includes('nurul hidayati')
+      ) {
+        parsed.namaStafKantin = 'Pengelola Kantin';
+        parsed.jabatanStaf = 'Pengelola Kantin';
+        localStorage.setItem(STORAGE_KEYS.SCHOOL, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return defaultSchoolProfile;
     }
@@ -472,6 +524,31 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
   },
 
+  // Product Categories (Master Kategori Barang)
+  getProductCategories: (): string[] => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.PRODUCT_CATEGORIES);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      // Populate defaults merged with existing products
+      const prods = storageService.getProducts();
+      const set = new Set<string>(defaultProductCategories);
+      prods.forEach((p) => {
+        if (p.kategori && p.kategori.trim()) set.add(p.kategori.trim());
+      });
+      const list = Array.from(set);
+      localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(list));
+      return list;
+    } catch {
+      return defaultProductCategories;
+    }
+  },
+  saveProductCategories: (categories: string[]): void => {
+    localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
+  },
+
   // Sales Transactions
   getSales: (): SaleTransaction[] => {
     try {
@@ -503,6 +580,26 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.SUPPLIERS, JSON.stringify(suppliers));
   },
 
+  // Cash Categories
+  getCashCategories: (): CashCategories => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CASH_CATEGORIES);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed?.penerimaan) && Array.isArray(parsed?.pengeluaran)) {
+          return parsed;
+        }
+      }
+      localStorage.setItem(STORAGE_KEYS.CASH_CATEGORIES, JSON.stringify(defaultCashCategories));
+      return defaultCashCategories;
+    } catch {
+      return defaultCashCategories;
+    }
+  },
+  saveCashCategories: (categories: CashCategories): void => {
+    localStorage.setItem(STORAGE_KEYS.CASH_CATEGORIES, JSON.stringify(categories));
+  },
+
   // Full Database Backup Export
   exportFullDatabase: (): KantinDatabase => {
     return {
@@ -511,8 +608,11 @@ export const storageService = {
       profilSekolah: storageService.getSchoolProfile(),
       transaksiKas: storageService.getCashTransactions(),
       barang: storageService.getProducts(),
+      kategoriProduk: storageService.getProductCategories(),
       penjualan: storageService.getSales(),
       penyedia: storageService.getSuppliers(),
+      kategoriKas: storageService.getCashCategories(),
+      kredensial: storageService.getAuthCredentials(),
     };
   },
 
@@ -526,13 +626,172 @@ export const storageService = {
       if (data.profilSekolah) storageService.saveSchoolProfile(data.profilSekolah);
       if (Array.isArray(data.transaksiKas)) storageService.saveCashTransactions(data.transaksiKas);
       if (Array.isArray(data.barang)) storageService.saveProducts(data.barang);
+      if (Array.isArray(data.kategoriProduk)) storageService.saveProductCategories(data.kategoriProduk);
       if (Array.isArray(data.penjualan)) storageService.saveSales(data.penjualan);
       if (Array.isArray(data.penyedia)) storageService.saveSuppliers(data.penyedia);
+      if (data.kategoriKas && Array.isArray(data.kategoriKas.penerimaan) && Array.isArray(data.kategoriKas.pengeluaran)) {
+        storageService.saveCashCategories(data.kategoriKas);
+      }
+      if (data.kredensial && data.kredensial.username && data.kredensial.password) {
+        storageService.saveAuthCredentials(data.kredensial);
+      }
 
       return { success: true, message: 'Data kantin berhasil dipulihkan secara lengkap!' };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Kesalahan internal';
       return { success: false, message: `Gagal memulihkan data: ${errorMsg}` };
+    }
+  },
+
+  // Authentication & Web Access Security
+  getAuthCredentials: (): AuthCredentials => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.AUTH_CREDS);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed.username && parsed.password) {
+          return parsed;
+        }
+      }
+      localStorage.setItem(STORAGE_KEYS.AUTH_CREDS, JSON.stringify(defaultAuthCredentials));
+      return defaultAuthCredentials;
+    } catch {
+      return defaultAuthCredentials;
+    }
+  },
+
+  saveAuthCredentials: (creds: AuthCredentials): void => {
+    localStorage.setItem(
+      STORAGE_KEYS.AUTH_CREDS,
+      JSON.stringify({ ...creds, updatedAt: new Date().toISOString() })
+    );
+  },
+
+  getSession: (): AuthSession | null => {
+    try {
+      const local = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
+      if (local) return JSON.parse(local);
+      const session = sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
+      if (session) return JSON.parse(session);
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  isAuthenticated: (): boolean => {
+    const session = storageService.getSession();
+    return !!session && !!session.username;
+  },
+
+  login: (
+    usernameInput: string,
+    passwordInput: string,
+    rememberMe = true
+  ): { success: boolean; message: string } => {
+    const creds = storageService.getAuthCredentials();
+    const cleanUser = usernameInput.trim();
+    const cleanPass = passwordInput.trim();
+
+    if (!cleanUser || !cleanPass) {
+      return { success: false, message: 'Username dan kata sandi wajib diisi.' };
+    }
+
+    if (
+      cleanUser.toLowerCase() === creds.username.toLowerCase() &&
+      cleanPass === creds.password
+    ) {
+      const sessionData: AuthSession = {
+        username: creds.username,
+        loggedInAt: new Date().toISOString(),
+      };
+
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(sessionData));
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+      } else {
+        sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(sessionData));
+        localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+      }
+
+      return { success: true, message: 'Login berhasil!' };
+    }
+
+    return {
+      success: false,
+      message: 'Username atau kata sandi yang Anda masukkan salah. Silakan coba lagi.',
+    };
+  },
+
+  logout: (): void => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    } catch {
+      // ignore
+    }
+  },
+
+  changePassword: (
+    currentPass: string,
+    newPass?: string,
+    newUsername?: string
+  ): { success: boolean; message: string } => {
+    const creds = storageService.getAuthCredentials();
+
+    if (currentPass !== creds.password) {
+      return { success: false, message: 'Kata sandi saat ini tidak cocok.' };
+    }
+
+    const trimmedUser = newUsername ? newUsername.trim() : '';
+    if (newUsername !== undefined && (!trimmedUser || trimmedUser.length < 3)) {
+      return { success: false, message: 'Username minimal 3 karakter.' };
+    }
+
+    const targetUser = trimmedUser || creds.username;
+    let targetPass = creds.password;
+
+    const hasNewPass = newPass && newPass.trim().length > 0;
+    if (hasNewPass) {
+      if (newPass.trim().length < 4) {
+        return {
+          success: false,
+          message: 'Kata sandi baru minimal 4 karakter demi keamanan.',
+        };
+      }
+      targetPass = newPass.trim();
+    }
+
+    const updatedCreds: AuthCredentials = {
+      username: targetUser,
+      password: targetPass,
+      namaPengguna: creds.namaPengguna || 'Pengelola Kantin',
+      updatedAt: new Date().toISOString(),
+    };
+
+    storageService.saveAuthCredentials(updatedCreds);
+
+    // Update active session with new username if changed
+    const currentSession = storageService.getSession();
+    if (currentSession) {
+      const updatedSession: AuthSession = {
+        username: updatedCreds.username,
+        loggedInAt: currentSession.loggedInAt,
+      };
+      if (localStorage.getItem(STORAGE_KEYS.AUTH_SESSION)) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(updatedSession));
+      }
+      if (sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION)) {
+        sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(updatedSession));
+      }
+    }
+
+    if (hasNewPass && targetUser !== creds.username) {
+      return { success: true, message: 'Username dan kata sandi berhasil diperbarui!' };
+    } else if (hasNewPass) {
+      return { success: true, message: 'Kata sandi berhasil diperbarui!' };
+    } else {
+      return { success: true, message: 'Username akun berhasil diperbarui!' };
     }
   },
 
@@ -544,5 +803,7 @@ export const storageService = {
     storageService.saveSuppliers(defaultSuppliers);
     storageService.saveCashTransactions(cashList);
     storageService.saveSales(salesList);
+    storageService.saveCashCategories(defaultCashCategories);
+    storageService.saveAuthCredentials(defaultAuthCredentials);
   },
 };
